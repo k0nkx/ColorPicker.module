@@ -110,7 +110,7 @@ function ColorPickerModule.Show(callback, initialColor, initialTransparency)
     
     gui.MainFrame = Instance.new('Frame')
     gui.MainFrame.Size = UDim2.new(0, 192, 0, 192)
-    gui.MainFrame.Position = UDim2.new(0, mousePos + 45, 0, mouseY + 45)
+    gui.MainFrame.Position = UDim2.new(0, mousePos + 22, 0, mouseY + 22)
     gui.MainFrame.BackgroundColor3 = Color3.fromRGB(25, 25, 25)
     gui.MainFrame.BorderColor3 = Color3.fromRGB(45, 45, 45)
     gui.MainFrame.BorderMode = Enum.BorderMode.Inset
