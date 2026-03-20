@@ -9,6 +9,7 @@ local Mouse = LocalPlayer:GetMouse()
 local ProtectGui = protectgui or (syn and syn.protect_gui) or function() end
 
 local activeInstance = nil
+local isOpen = false
 
 local function encodeColor(r, g, b, t)
     r = math.floor(r * 255 + 0.5)
@@ -71,12 +72,12 @@ end
 
 function ColorPickerModule.Show(callback, initialColor, initialTransparency)
     if activeInstance and activeInstance.ScreenGui then
-        activeInstance.ScreenGui:Destroy()
-        activeInstance = nil
+        ColorPickerModule.Close()
     end
     
     local instance = {}
     activeInstance = instance
+    isOpen = true
     
     local data = {
         currentColor = initialColor or Color3.fromRGB(255, 0, 0),
@@ -95,6 +96,8 @@ function ColorPickerModule.Show(callback, initialColor, initialTransparency)
     gui.ScreenGui.Parent = (cloneref and cloneref(game:GetService('CoreGui')) or game:GetService('CoreGui')) or LocalPlayer:WaitForChild('PlayerGui')
     ProtectGui(gui.ScreenGui)
     instance.ScreenGui = gui.ScreenGui
+    instance.gui = gui
+    instance.data = data
     
     gui.MainFrame = Instance.new('Frame')
     gui.MainFrame.Size = UDim2.new(0, 192, 0, 192)
@@ -237,6 +240,7 @@ function ColorPickerModule.Show(callback, initialColor, initialTransparency)
     gui.TransparencyCursor.Parent = gui.TransparencyInner
     
     local function UpdateDisplay()
+        if not isOpen then return end
         gui.PickerGradient.BackgroundColor3 = Color3.fromHSV(data.currentHue, 1, 1)
         gui.PickerCursor.Position = UDim2.new(0, data.currentSat * gui.PickerGradient.AbsoluteSize.X - 2.5, 0, (1 - data.currentVib) * gui.PickerGradient.AbsoluteSize.Y - 2.5)
         gui.HueCursor.Position = UDim2.new(0, 0, 0, data.currentHue * gui.HueGradient.AbsoluteSize.Y - 1)
@@ -260,7 +264,7 @@ function ColorPickerModule.Show(callback, initialColor, initialTransparency)
     end
     
     local function handleInput(pos, began)
-        if not activeInstance then return end
+        if not isOpen or not activeInstance then return end
         
         if began then
             local targets = {gui.PickerGradient, gui.HueGradient, gui.TransparencyInner}
@@ -295,23 +299,53 @@ function ColorPickerModule.Show(callback, initialColor, initialTransparency)
         end
     end
     
-    UserInputService.InputBegan:Connect(function(i)
+    local function checkClickOutside(input)
+        if not isOpen or not activeInstance then return end
+        
+        if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
+            local pos = Vector2.new(input.Position and input.Position.X or Mouse.X, input.Position and input.Position.Y or Mouse.Y)
+            
+            local frames = {gui.MainFrame, gui.PreviewFrame, gui.InfoFrame}
+            local clickedInside = false
+            
+            for _, frame in ipairs(frames) do
+                if pos.X >= frame.AbsolutePosition.X and pos.X <= frame.AbsolutePosition.X + frame.AbsoluteSize.X and
+                   pos.Y >= frame.AbsolutePosition.Y and pos.Y <= frame.AbsolutePosition.Y + frame.AbsoluteSize.Y then
+                    clickedInside = true
+                    break
+                end
+            end
+            
+            if not clickedInside then
+                ColorPickerModule.Close()
+            end
+        end
+    end
+    
+    local inputBeganConnection = UserInputService.InputBegan:Connect(function(i)
         if i.UserInputType == Enum.UserInputType.MouseButton1 or i.UserInputType == Enum.UserInputType.Touch then
+            checkClickOutside(i)
             handleInput(Vector2.new(i.Position and i.Position.X or Mouse.X, i.Position and i.Position.Y or Mouse.Y), true)
         end
     end)
     
-    UserInputService.InputChanged:Connect(function(i)
+    local inputChangedConnection = UserInputService.InputChanged:Connect(function(i)
         if (i.UserInputType == Enum.UserInputType.MouseMovement or i.UserInputType == Enum.UserInputType.Touch) and activeInstance and activeInstance.picking then
             handleInput(Vector2.new(i.Position and i.Position.X or Mouse.X, i.Position and i.Position.Y or Mouse.Y), false)
         end
     end)
     
-    UserInputService.InputEnded:Connect(function(i)
+    local inputEndedConnection = UserInputService.InputEnded:Connect(function(i)
         if (i.UserInputType == Enum.UserInputType.MouseButton1 or i.UserInputType == Enum.UserInputType.Touch) and activeInstance and activeInstance.picking then
             activeInstance.picking = false
         end
     end)
+    
+    instance.connections = {
+        inputBeganConnection,
+        inputChangedConnection,
+        inputEndedConnection
+    }
     
     data.currentHue = 0
     data.currentSat = 1
@@ -327,42 +361,55 @@ function ColorPickerModule.Show(callback, initialColor, initialTransparency)
 end
 
 function ColorPickerModule.Close()
-    if activeInstance and activeInstance.ScreenGui then
-        activeInstance.ScreenGui:Destroy()
+    if activeInstance then
+        if activeInstance.connections then
+            for _, conn in ipairs(activeInstance.connections) do
+                conn:Disconnect()
+            end
+        end
+        if activeInstance.ScreenGui then
+            activeInstance.ScreenGui:Destroy()
+        end
         activeInstance = nil
     end
+    isOpen = false
 end
 
 function ColorPickerModule.SetColor(color, transparency)
-    if not activeInstance then return end
+    if not activeInstance or not isOpen then return end
     
-    local data = activeInstance.data or {}
+    local data = activeInstance.data
+    local gui = activeInstance.gui
+    
     data.currentColor = color or Color3.fromRGB(255, 0, 0)
     data.currentTransparency = transparency or 0
     data.currentHue, data.currentSat, data.currentVib = Color3.toHSV(data.currentColor)
     
-    if activeInstance.gui then
-        local gui = activeInstance.gui
-        gui.PreviewFrame.BackgroundColor3 = data.currentColor
-        gui.PreviewFrame.BackgroundTransparency = data.currentTransparency
-        gui.TransparencyInner.BackgroundColor3 = data.currentColor
-        
-        local function UpdateDisplay()
-            gui.PickerGradient.BackgroundColor3 = Color3.fromHSV(data.currentHue, 1, 1)
-            gui.PickerCursor.Position = UDim2.new(0, data.currentSat * gui.PickerGradient.AbsoluteSize.X - 2.5, 0, (1 - data.currentVib) * gui.PickerGradient.AbsoluteSize.Y - 2.5)
-            gui.HueCursor.Position = UDim2.new(0, 0, 0, data.currentHue * gui.HueGradient.AbsoluteSize.Y - 1)
-            gui.TransparencyCursor.Position = UDim2.new(0, (1 - data.currentTransparency) * gui.TransparencyInner.AbsoluteSize.X - 1, 0, 0)
-            
-            gui.RGBLabel.Text = string.format('RGB: %d,%d,%d', math.floor(data.currentColor.R*255+0.5), math.floor(data.currentColor.G*255+0.5), math.floor(data.currentColor.B*255+0.5))
-            gui.HexLabel.Text = 'HEX: #' .. string.upper(data.currentColor:ToHex())
-            gui.HSVLabel.Text = string.format('HSV: %d,%d,%d', math.floor(data.currentHue*360+0.5), math.floor(data.currentSat*100+0.5), math.floor(data.currentVib*100+0.5))
-            gui.OpacityLabel.Text = string.format('Opacity: %d%%', math.floor((1 - data.currentTransparency)*100+0.5))
-            gui.BrightnessLabel.Text = string.format('Bright: %d%%', math.floor(data.currentVib*100+0.5))
-            gui.SaturationLabel.Text = string.format('Sat: %d%%', math.floor(data.currentSat*100+0.5))
-        end
-        
-        UpdateDisplay()
+    gui.PreviewFrame.BackgroundColor3 = data.currentColor
+    gui.PreviewFrame.BackgroundTransparency = data.currentTransparency
+    gui.TransparencyInner.BackgroundColor3 = data.currentColor
+    
+    gui.PickerGradient.BackgroundColor3 = Color3.fromHSV(data.currentHue, 1, 1)
+    gui.PickerCursor.Position = UDim2.new(0, data.currentSat * gui.PickerGradient.AbsoluteSize.X - 2.5, 0, (1 - data.currentVib) * gui.PickerGradient.AbsoluteSize.Y - 2.5)
+    gui.HueCursor.Position = UDim2.new(0, 0, 0, data.currentHue * gui.HueGradient.AbsoluteSize.Y - 1)
+    gui.TransparencyCursor.Position = UDim2.new(0, (1 - data.currentTransparency) * gui.TransparencyInner.AbsoluteSize.X - 1, 0, 0)
+    
+    gui.RGBLabel.Text = string.format('RGB: %d,%d,%d', math.floor(data.currentColor.R*255+0.5), math.floor(data.currentColor.G*255+0.5), math.floor(data.currentColor.B*255+0.5))
+    gui.HexLabel.Text = 'HEX: #' .. string.upper(data.currentColor:ToHex())
+    gui.HSVLabel.Text = string.format('HSV: %d,%d,%d', math.floor(data.currentHue*360+0.5), math.floor(data.currentSat*100+0.5), math.floor(data.currentVib*100+0.5))
+    gui.OpacityLabel.Text = string.format('Opacity: %d%%', math.floor((1 - data.currentTransparency)*100+0.5))
+    gui.BrightnessLabel.Text = string.format('Bright: %d%%', math.floor(data.currentVib*100+0.5))
+    gui.SaturationLabel.Text = string.format('Sat: %d%%', math.floor(data.currentSat*100+0.5))
+    
+    if data.callback then
+        local encoded = encodeColor(data.currentColor.R, data.currentColor.G, data.currentColor.B, data.currentTransparency)
+        gui.EncodedLabel.Text = 'Code: ' .. encoded
+        data.callback(data.currentColor, data.currentTransparency)
     end
+end
+
+function ColorPickerModule.IsOpen()
+    return isOpen
 end
 
 function ColorPickerModule.Encode(color, transparency)
