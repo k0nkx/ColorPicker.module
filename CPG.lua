@@ -3,6 +3,7 @@ local ColorPickerModule = {}
 local UserInputService = cloneref and cloneref(game:GetService('UserInputService')) or game:GetService('UserInputService')
 local Players = cloneref and cloneref(game:GetService('Players')) or game:GetService('Players')
 local RunService = cloneref and cloneref(game:GetService('RunService')) or game:GetService('RunService')
+local TweenService = cloneref and cloneref(game:GetService('TweenService')) or game:GetService('TweenService')
 local LocalPlayer = Players.LocalPlayer
 local Mouse = LocalPlayer:GetMouse()
 
@@ -10,6 +11,8 @@ local ProtectGui = protectgui or (syn and syn.protect_gui) or function() end
 
 local activeInstance = nil
 local isOpen = false
+local lastColor = Color3.fromRGB(255, 0, 0)
+local lastTransparency = 0
 
 local function encodeColor(r, g, b, t)
     r = math.floor(r * 255 + 0.5)
@@ -79,14 +82,20 @@ function ColorPickerModule.Show(callback, initialColor, initialTransparency)
     activeInstance = instance
     isOpen = true
     
+    local startColor = initialColor or lastColor
+    local startTransparency = initialTransparency or lastTransparency
+    
     local data = {
-        currentColor = initialColor or Color3.fromRGB(255, 0, 0),
-        currentTransparency = initialTransparency or 0,
+        currentColor = startColor,
+        currentTransparency = startTransparency,
         picking = false,
         callback = callback
     }
     
     data.currentHue, data.currentSat, data.currentVib = Color3.toHSV(data.currentColor)
+    
+    local mousePos = Mouse.X
+    local mouseY = Mouse.Y
     
     local gui = {}
     gui.ScreenGui = Instance.new('ScreenGui')
@@ -101,7 +110,7 @@ function ColorPickerModule.Show(callback, initialColor, initialTransparency)
     
     gui.MainFrame = Instance.new('Frame')
     gui.MainFrame.Size = UDim2.new(0, 192, 0, 192)
-    gui.MainFrame.Position = UDim2.new(0.5, -210, 0.5, -110)
+    gui.MainFrame.Position = UDim2.new(0, mousePos + 45, 0, mouseY + 45)
     gui.MainFrame.BackgroundColor3 = Color3.fromRGB(25, 25, 25)
     gui.MainFrame.BorderColor3 = Color3.fromRGB(45, 45, 45)
     gui.MainFrame.BorderMode = Enum.BorderMode.Inset
@@ -110,21 +119,21 @@ function ColorPickerModule.Show(callback, initialColor, initialTransparency)
     
     gui.PreviewFrame = Instance.new('Frame')
     gui.PreviewFrame.Size = UDim2.new(0, 50, 0, 50)
-    gui.PreviewFrame.Position = UDim2.new(0.5, -14, 0.5, -110)
+    gui.PreviewFrame.Position = UDim2.new(0, 202, 0, 0)
     gui.PreviewFrame.BackgroundColor3 = data.currentColor
     gui.PreviewFrame.BackgroundTransparency = data.currentTransparency
     gui.PreviewFrame.BorderColor3 = Color3.fromRGB(45, 45, 45)
     gui.PreviewFrame.BorderMode = Enum.BorderMode.Inset
-    gui.PreviewFrame.Parent = gui.ScreenGui
+    gui.PreviewFrame.Parent = gui.MainFrame
     
     gui.InfoFrame = Instance.new('Frame')
     gui.InfoFrame.Size = UDim2.new(0, 95, 0, 120)
-    gui.InfoFrame.Position = UDim2.new(0.5, -14, 0.5, -55)
+    gui.InfoFrame.Position = UDim2.new(0, 202, 0, 55)
     gui.InfoFrame.BackgroundColor3 = Color3.fromRGB(25, 25, 25)
     gui.InfoFrame.BorderColor3 = Color3.fromRGB(45, 45, 45)
     gui.InfoFrame.BorderMode = Enum.BorderMode.Inset
     gui.InfoFrame.Active = true
-    gui.InfoFrame.Parent = gui.ScreenGui
+    gui.InfoFrame.Parent = gui.MainFrame
     
     local function createInfoLabel(parent, text, yPos)
         local label = Instance.new('TextLabel')
@@ -239,6 +248,11 @@ function ColorPickerModule.Show(callback, initialColor, initialTransparency)
     gui.TransparencyCursor.BorderColor3 = Color3.new(0, 0, 0)
     gui.TransparencyCursor.Parent = gui.TransparencyInner
     
+    gui.MainFrame:GetPropertyChangedSignal('AbsolutePosition'):Connect(function()
+        gui.PreviewFrame.Position = UDim2.new(0, gui.MainFrame.AbsoluteSize.X + 10, 0, 0)
+        gui.InfoFrame.Position = UDim2.new(0, gui.MainFrame.AbsoluteSize.X + 10, 0, 55)
+    end)
+    
     local function UpdateDisplay()
         if not isOpen then return end
         gui.PickerGradient.BackgroundColor3 = Color3.fromHSV(data.currentHue, 1, 1)
@@ -292,6 +306,8 @@ function ColorPickerModule.Show(callback, initialColor, initialTransparency)
             end
 
             data.currentColor = Color3.fromHSV(data.currentHue, data.currentSat, data.currentVib)
+            lastColor = data.currentColor
+            lastTransparency = data.currentTransparency
             if data.callback then
                 data.callback(data.currentColor, data.currentTransparency)
             end
@@ -347,11 +363,6 @@ function ColorPickerModule.Show(callback, initialColor, initialTransparency)
         inputEndedConnection
     }
     
-    data.currentHue = 0
-    data.currentSat = 1
-    data.currentVib = 1
-    data.currentColor = Color3.fromHSV(0, 1, 1)
-    
     UpdateDisplay()
     if data.callback then
         data.callback(data.currentColor, data.currentTransparency)
@@ -385,6 +396,9 @@ function ColorPickerModule.SetColor(color, transparency)
     data.currentTransparency = transparency or 0
     data.currentHue, data.currentSat, data.currentVib = Color3.toHSV(data.currentColor)
     
+    lastColor = data.currentColor
+    lastTransparency = data.currentTransparency
+    
     gui.PreviewFrame.BackgroundColor3 = data.currentColor
     gui.PreviewFrame.BackgroundTransparency = data.currentTransparency
     gui.TransparencyInner.BackgroundColor3 = data.currentColor
@@ -406,6 +420,10 @@ function ColorPickerModule.SetColor(color, transparency)
         gui.EncodedLabel.Text = 'Code: ' .. encoded
         data.callback(data.currentColor, data.currentTransparency)
     end
+end
+
+function ColorPickerModule.GetLastColor()
+    return lastColor, lastTransparency
 end
 
 function ColorPickerModule.IsOpen()
