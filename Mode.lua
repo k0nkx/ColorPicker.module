@@ -1,11 +1,11 @@
 local ModeSelector = {}
 ModeSelector.__index = ModeSelector
 
-local Players = game:GetService("Players")
-local TweenService = game:GetService("TweenService")
-local CoreGui = game:GetService("CoreGui")
-local HttpService = game:GetService("HttpService")
-local UserInputService = game:GetService("UserInputService")
+local Players = cloneref(game:GetService("Players"))
+local TweenService = cloneref(game:GetService("TweenService"))
+local CoreGui = cloneref(game:GetService("CoreGui"))
+local HttpService = cloneref(game:GetService("HttpService"))
+local UserInputService = cloneref(game:GetService("UserInputService"))
 
 local activeInstances = {}
 local fontDataLoaded = false
