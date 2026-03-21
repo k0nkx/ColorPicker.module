@@ -1,0 +1,127 @@
+local ModeSelector = loadstring(game:HttpGet("https://github.com/k0nkx/UI-Functions-modules/raw/refs/heads/main/Mode.lua"))()
+
+local screenGui = Instance.new("ScreenGui")
+screenGui.Name = "ModeExampleGUI"
+screenGui.ResetOnSpawn = false
+screenGui.Parent = game:GetService("CoreGui")
+
+local toggleButton = Instance.new("TextButton")
+toggleButton.Size = UDim2.new(0, 200, 0, 50)
+toggleButton.Position = UDim2.new(0.5, -100, 0.3, 0)
+toggleButton.BackgroundColor3 = Color3.fromRGB(45, 55, 75)
+toggleButton.BorderColor3 = Color3.fromRGB(0, 0, 0)
+toggleButton.BorderSizePixel = 1
+toggleButton.Text = "Feature"
+toggleButton.TextColor3 = Color3.fromRGB(255, 255, 255)
+toggleButton.TextSize = 18
+toggleButton.Font = Enum.Font.SourceSansBold
+toggleButton.Parent = screenGui
+
+local statusLabel = Instance.new("TextLabel")
+statusLabel.Size = UDim2.new(0, 200, 0, 30)
+statusLabel.Position = UDim2.new(0.5, -100, 0.4, 0)
+statusLabel.BackgroundColor3 = Color3.fromRGB(33, 33, 33)
+statusLabel.BorderColor3 = Color3.fromRGB(0, 0, 0)
+statusLabel.BorderSizePixel = 1
+statusLabel.Text = "Mode: Always | State: OFF"
+statusLabel.TextColor3 = Color3.fromRGB(255, 255, 255)
+statusLabel.TextSize = 12
+statusLabel.Font = Enum.Font.SourceSans
+statusLabel.Parent = screenGui
+
+local currentMode = "Always"
+local isActive = false
+local modeSelector = nil
+
+local function updateUI()
+    local stateText = isActive and "ON" or "OFF"
+    statusLabel.Text = "Mode: " .. currentMode .. " | State: " .. stateText
+    if currentMode == "Always" then
+        toggleButton.BackgroundColor3 = isActive and Color3.fromRGB(45, 125, 220) or Color3.fromRGB(45, 55, 75)
+    elseif currentMode == "Toggle" then
+        toggleButton.BackgroundColor3 = isActive and Color3.fromRGB(45, 125, 220) or Color3.fromRGB(45, 55, 75)
+    elseif currentMode == "Hold" then
+        toggleButton.BackgroundColor3 = Color3.fromRGB(45, 55, 75)
+    end
+end
+
+local function updateFeature()
+    if currentMode == "Always" then
+        isActive = true
+        updateUI()
+        print("Feature is ALWAYS ON")
+    elseif currentMode == "Toggle" then
+        updateUI()
+        print("Feature is in TOGGLE mode, state:", isActive)
+    elseif currentMode == "Hold" then
+        isActive = false
+        updateUI()
+        print("Feature is in HOLD mode, waiting for hold")
+    end
+end
+
+local function showModeSelector()
+    if modeSelector then
+        modeSelector:Destroy()
+        modeSelector = nil
+    end
+    local mousePos = game:GetService("UserInputService"):GetMouseLocation()
+    modeSelector = ModeSelector.new({
+        title = "Mode",
+        onModeChanged = function(mode)
+            currentMode = mode
+            updateFeature()
+        end,
+        onClose = function()
+        end
+    })
+    modeSelector:Open()
+end
+
+toggleButton.MouseButton1Click:Connect(function()
+    if currentMode == "Always" then
+        isActive = true
+        updateUI()
+        print("Feature is always ON")
+    elseif currentMode == "Toggle" then
+        isActive = not isActive
+        updateUI()
+        print("Toggled feature:", isActive)
+    elseif currentMode == "Hold" then
+        print("Hold mode - use right-click to change mode, then hold button")
+    end
+end)
+
+toggleButton.MouseButton2Click:Connect(function()
+    showModeSelector()
+end)
+
+local isHolding = false
+
+toggleButton.InputBegan:Connect(function(input)
+    if currentMode == "Hold" and input.UserInputType == Enum.UserInputType.MouseButton1 then
+        isHolding = true
+        isActive = true
+        updateUI()
+        print("Hold started - Feature ON")
+    end
+end)
+
+toggleButton.InputEnded:Connect(function(input)
+    if currentMode == "Hold" and input.UserInputType == Enum.UserInputType.MouseButton1 then
+        isHolding = false
+        isActive = false
+        updateUI()
+        print("Hold ended - Feature OFF")
+    end
+end)
+
+game:GetService("UserInputService").InputBegan:Connect(function(input, gameProcessed)
+    if gameProcessed then return end
+    if input.KeyCode == Enum.KeyCode.Escape and modeSelector then
+        modeSelector:Close()
+    end
+end)
+
+updateFeature()
+print("GUI loaded - Right-click the button to change mode")
