@@ -10,6 +10,7 @@ local UserInputService = cloneref(game:GetService("UserInputService"))
 local activeInstances = {}
 local fontDataLoaded = false
 local customFont = nil
+local globalModeStorage = {} -- Global storage for modes by button ID
 
 local function setupFont()
     if fontDataLoaded then return customFont end
@@ -51,22 +52,23 @@ function ModeSelector.new(options)
     
     self.options = options or {}
     self.modes = {"Always", "Toggle", "Hold"}
-    self.currentMode = self.modes[1]
+    self.currentButtonId = options.buttonId or 1
+    
+    -- Load saved mode from global storage
+    if globalModeStorage[self.currentButtonId] then
+        self.currentMode = globalModeStorage[self.currentButtonId]
+    else
+        self.currentMode = self.modes[1]
+    end
+    
     self.isOpen = false
     self.connections = {}
     self.objects = {}
-    self.modeHistory = {} -- Stores mode for each button ID
-    self.currentButtonId = options.buttonId or 1 -- Unique identifier for this selector instance
     self.callbacks = {
         onModeChanged = self.options.onModeChanged or function() end,
         onOpen = self.options.onOpen or function() end,
         onClose = self.options.onClose or function() end
     }
-    
-    -- Load saved mode for this button ID
-    if self.options.savedModes and self.options.savedModes[self.currentButtonId] then
-        self.currentMode = self.options.savedModes[self.currentButtonId]
-    end
     
     self:createUI()
     
@@ -197,7 +199,8 @@ function ModeSelector:createButtons()
             updateColors()
             
             self.currentMode = self.buttons[1].TextLabel.Text
-            self.modeHistory[self.currentButtonId] = self.currentMode
+            -- Save to global storage
+            globalModeStorage[self.currentButtonId] = self.currentMode
             self.callbacks.onModeChanged(self.currentMode)
         end)
         
@@ -289,7 +292,7 @@ function ModeSelector:Open()
     
     -- Position 15 pixels down and 30 pixels left of mouse position
     local mousePos = UserInputService:GetMouseLocation()
-    self.MainFrame.Position = UDim2.new(0, mousePos.X - 5, 0, mousePos.Y + 19)
+    self.MainFrame.Position = UDim2.new(0, mousePos.X - 30, 0, mousePos.Y + 15)
     
     self.MainFrame.Visible = true
     self.BackgroundCatcher.Visible = true
@@ -346,7 +349,8 @@ function ModeSelector:SetMode(mode)
     end
     
     self.currentMode = mode
-    self.modeHistory[self.currentButtonId] = mode
+    -- Save to global storage
+    globalModeStorage[self.currentButtonId] = mode
     self.callbacks.onModeChanged(mode)
     return true
 end
@@ -356,7 +360,7 @@ function ModeSelector:SetPosition(position)
 end
 
 function ModeSelector:GetSavedMode()
-    return self.modeHistory[self.currentButtonId] or self.currentMode
+    return globalModeStorage[self.currentButtonId] or self.currentMode
 end
 
 function ModeSelector:Destroy()
