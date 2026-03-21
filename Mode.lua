@@ -292,7 +292,7 @@ function ModeSelector:Open()
     
     -- Position offset from mouse: 25 pixels right, 11 pixels up
     local mousePos = UserInputService:GetMouseLocation()
-    self.MainFrame.Position = UDim2.new(0, mousePos.X + 25, 0, mousePos.Y - 11)
+    self.MainFrame.Position = UDim2.new(0, mousePos.X + 0, 0, mousePos.Y - 0)
     
     self.MainFrame.Visible = true
     self.BackgroundCatcher.Visible = true
