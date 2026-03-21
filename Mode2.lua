@@ -7,7 +7,8 @@ local CoreGui = cloneref(game:GetService("CoreGui"))
 local HttpService = cloneref(game:GetService("HttpService"))
 local UserInputService = cloneref(game:GetService("UserInputService"))
 
-local activeInstances = {}
+local activeInstances = {} -- Track all instances
+local openInstance = nil -- Track which instance is currently open
 local fontDataLoaded = false
 local customFont = nil
 local globalModeStorage = {} -- Global storage for modes by button ID
@@ -71,6 +72,9 @@ function ModeSelector.new(options)
     }
     
     self:createUI()
+    
+    -- Add to active instances tracking
+    table.insert(activeInstances, self)
     
     return self
 end
@@ -295,7 +299,14 @@ end
 
 function ModeSelector:Open()
     if self.isOpen then return end
+    
+    -- Close any other open instance first
+    if openInstance and openInstance ~= self and openInstance.isOpen then
+        openInstance:Close()
+    end
+    
     self.isOpen = true
+    openInstance = self -- Set this as the currently open instance
     
     -- Position at mouse: 5 pixels right, 30 pixels up
     local mousePos = UserInputService:GetMouseLocation()
@@ -309,6 +320,12 @@ end
 function ModeSelector:Close()
     if not self.isOpen then return end
     self.isOpen = false
+    
+    -- Clear the open instance reference if this was the one that was open
+    if openInstance == self then
+        openInstance = nil
+    end
+    
     self.MainFrame.Visible = false
     self.BackgroundCatcher.Visible = false
     self.callbacks.onClose()
@@ -335,6 +352,11 @@ function ModeSelector:GetSavedMode()
 end
 
 function ModeSelector:Destroy()
+    -- If this instance was open, clear the reference
+    if openInstance == self then
+        openInstance = nil
+    end
+    
     for _, conn in ipairs(self.connections) do
         pcall(function() conn:Disconnect() end)
     end
@@ -356,6 +378,12 @@ function ModeSelector:Destroy()
 end
 
 function ModeSelector.CleanupAll()
+    -- Close any open instance first
+    if openInstance then
+        pcall(function() openInstance:Close() end)
+        openInstance = nil
+    end
+    
     for _, instance in ipairs(activeInstances) do
         pcall(function() instance:Destroy() end)
     end
