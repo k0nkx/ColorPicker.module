@@ -55,11 +55,18 @@ function ModeSelector.new(options)
     self.isOpen = false
     self.connections = {}
     self.objects = {}
+    self.modeHistory = {} -- Stores mode for each button ID
+    self.currentButtonId = options.buttonId or 1 -- Unique identifier for this selector instance
     self.callbacks = {
         onModeChanged = self.options.onModeChanged or function() end,
         onOpen = self.options.onOpen or function() end,
         onClose = self.options.onClose or function() end
     }
+    
+    -- Load saved mode for this button ID
+    if self.options.savedModes and self.options.savedModes[self.currentButtonId] then
+        self.currentMode = self.options.savedModes[self.currentButtonId]
+    end
     
     self:createUI()
     
@@ -79,7 +86,7 @@ function ModeSelector:createUI()
     
     self.MainFrame = Instance.new("Frame")
     self.MainFrame.Size = UDim2.new(0, 90, 0, 115)
-    self.MainFrame.Position = UDim2.new(0.5, -45, 0.5, -57)
+    -- Position will be set when opening
     self.MainFrame.BackgroundColor3 = Color3.fromRGB(33, 33, 33)
     self.MainFrame.BorderColor3 = Color3.fromRGB(0, 0, 0)
     self.MainFrame.BorderSizePixel = 1
@@ -147,6 +154,9 @@ function ModeSelector:createButtons()
         end
     end
     
+    -- Find which mode should be at top based on saved mode
+    local topModeIndex = table.find(self.modes, self.currentMode) or 1
+    
     for i, modeName in ipairs(self.modes) do
         local btn = Instance.new("TextButton")
         btn.Text = ""
@@ -189,10 +199,22 @@ function ModeSelector:createButtons()
             updateColors()
             
             self.currentMode = self.buttons[1].TextLabel.Text
+            self.modeHistory[self.currentButtonId] = self.currentMode
             self.callbacks.onModeChanged(self.currentMode)
         end)
         
         table.insert(self.buttons, btn)
+    end
+    
+    -- Reorder buttons to put saved mode at top
+    if topModeIndex ~= 1 then
+        local targetBtn = self.buttons[topModeIndex]
+        local topBtn = self.buttons[1]
+        self.buttons[1], self.buttons[topModeIndex] = targetBtn, topBtn
+        
+        -- Update positions without animation for initial setup
+        targetBtn.Position = UDim2.new(0.05, 0, 0, self.positions[1])
+        topBtn.Position = UDim2.new(0.05, 0, 0, self.positions[topModeIndex])
     end
     
     updateColors()
@@ -261,6 +283,11 @@ end
 function ModeSelector:Open()
     if self.isOpen then return end
     self.isOpen = true
+    
+    -- Position 15 pixels down and 30 pixels left of mouse position
+    local mousePos = UserInputService:GetMouseLocation()
+    self.MainFrame.Position = UDim2.new(0, mousePos.X - 30, 0, mousePos.Y + 15)
+    
     self.MainFrame.Visible = true
     self.BackgroundCatcher.Visible = true
     self.callbacks.onOpen()
@@ -316,12 +343,17 @@ function ModeSelector:SetMode(mode)
     end
     
     self.currentMode = mode
+    self.modeHistory[self.currentButtonId] = mode
     self.callbacks.onModeChanged(mode)
     return true
 end
 
 function ModeSelector:SetPosition(position)
     self.MainFrame.Position = position
+end
+
+function ModeSelector:GetSavedMode()
+    return self.modeHistory[self.currentButtonId] or self.currentMode
 end
 
 function ModeSelector:Destroy()
