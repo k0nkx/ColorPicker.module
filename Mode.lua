@@ -290,7 +290,7 @@ function ModeSelector:Open()
     if self.isOpen then return end
     self.isOpen = true
     
-    -- Position: more up (-11 instead of -6) and more left (25 instead of 30)
+    -- Position offset from mouse: 25 pixels right, 11 pixels up
     local mousePos = UserInputService:GetMouseLocation()
     self.MainFrame.Position = UDim2.new(0, mousePos.X + 25, 0, mousePos.Y - 11)
     
@@ -353,10 +353,6 @@ function ModeSelector:SetMode(mode)
     globalModeStorage[self.currentButtonId] = mode
     self.callbacks.onModeChanged(mode)
     return true
-end
-
-function ModeSelector:SetPosition(position)
-    self.MainFrame.Position = position
 end
 
 function ModeSelector:GetSavedMode()
