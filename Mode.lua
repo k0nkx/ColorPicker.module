@@ -292,7 +292,7 @@ function ModeSelector:Open()
     
     -- Position: more up (negative Y offset) and more right (positive X offset)
     local mousePos = UserInputService:GetMouseLocation()
-    self.MainFrame.Position = UDim2.new(0, mousePos.X + 30, 0, mousePos.Y - 6)
+    self.MainFrame.Position = UDim2.new(0, mousePos.X + 25, 0, mousePos.Y - 35)
     
     self.MainFrame.Visible = true
     self.BackgroundCatcher.Visible = true
