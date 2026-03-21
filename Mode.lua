@@ -191,38 +191,83 @@ function ModeSelector:createButtons()
         btn.MouseButton1Click:Connect(function()
             local clickedIndex = table.find(self.buttons, btn)
             if not clickedIndex or clickedIndex == 1 then return end
-            local topBtn = self.buttons[1]
-            tween(btn, {Position = UDim2.new(0.05, 0, 0, self.positions[1])})
-            tween(topBtn, {Position = UDim2.new(0.05, 0, 0, self.positions[clickedIndex])})
-            self.buttons[1], self.buttons[clickedIndex] = self.buttons[clickedIndex], self.buttons[1]
-            updateColors()
-            
-            self.currentMode = self.buttons[1].TextLabel.Text
-            -- Save to global storage
-            globalModeStorage[self.currentButtonId] = self.currentMode
-            self.callbacks.onModeChanged(self.currentMode)
+            self:UpdateModeByIndex(clickedIndex)
         end)
         
         table.insert(self.buttons, btn)
     end
     
     -- Reorder buttons to put saved mode at top
-    if self.currentMode ~= self.modes[1] then
-        local targetIndex = table.find(self.modes, self.currentMode)
-        if targetIndex then
-            local targetBtn = self.buttons[targetIndex]
-            local topBtn = self.buttons[1]
-            
-            -- Swap positions in table
-            self.buttons[1], self.buttons[targetIndex] = targetBtn, topBtn
-            
-            -- Update visual positions
-            targetBtn.Position = UDim2.new(0.05, 0, 0, self.positions[1])
-            topBtn.Position = UDim2.new(0.05, 0, 0, self.positions[targetIndex])
+    self:UpdateModeByName(self.currentMode, true)
+end
+
+function ModeSelector:UpdateModeByIndex(clickedIndex)
+    local tween = function(obj, props)
+        TweenService:Create(obj, self.tweenInfo, props):Play()
+    end
+    
+    local targetBtn = self.buttons[clickedIndex]
+    local topBtn = self.buttons[1]
+    
+    tween(targetBtn, {Position = UDim2.new(0.05, 0, 0, self.positions[1])})
+    tween(topBtn, {Position = UDim2.new(0.05, 0, 0, self.positions[clickedIndex])})
+    self.buttons[1], self.buttons[clickedIndex] = self.buttons[clickedIndex], self.buttons[1]
+    
+    for i, btn in ipairs(self.buttons) do
+        tween(btn, {BackgroundColor3 = i == 1 and self.colors.on or self.colors.off})
+    end
+    
+    self.currentMode = self.buttons[1].TextLabel.Text
+    globalModeStorage[self.currentButtonId] = self.currentMode
+    self.callbacks.onModeChanged(self.currentMode)
+end
+
+function ModeSelector:UpdateModeByName(mode, instant)
+    local modeIndex = table.find(self.modes, mode)
+    if not modeIndex then return false end
+    
+    -- Find the button with this mode
+    local targetIndex = nil
+    for i, btn in ipairs(self.buttons) do
+        if btn.TextLabel.Text == mode then
+            targetIndex = i
+            break
         end
     end
     
-    updateColors()
+    if not targetIndex or targetIndex == 1 then return false end
+    
+    local targetBtn = self.buttons[targetIndex]
+    local topBtn = self.buttons[1]
+    
+    if instant then
+        -- Instant update without animation
+        targetBtn.Position = UDim2.new(0.05, 0, 0, self.positions[1])
+        topBtn.Position = UDim2.new(0.05, 0, 0, self.positions[targetIndex])
+        self.buttons[1], self.buttons[targetIndex] = self.buttons[targetIndex], self.buttons[1]
+        
+        for i, btn in ipairs(self.buttons) do
+            btn.BackgroundColor3 = i == 1 and self.colors.on or self.colors.off
+        end
+    else
+        -- Animated update
+        local tween = function(obj, props)
+            TweenService:Create(obj, self.tweenInfo, props):Play()
+        end
+        
+        tween(targetBtn, {Position = UDim2.new(0.05, 0, 0, self.positions[1])})
+        tween(topBtn, {Position = UDim2.new(0.05, 0, 0, self.positions[targetIndex])})
+        self.buttons[1], self.buttons[targetIndex] = self.buttons[targetIndex], self.buttons[1]
+        
+        for i, btn in ipairs(self.buttons) do
+            tween(btn, {BackgroundColor3 = i == 1 and self.colors.on or self.colors.off})
+        end
+    end
+    
+    self.currentMode = mode
+    globalModeStorage[self.currentButtonId] = mode
+    self.callbacks.onModeChanged(mode)
+    return true
 end
 
 function ModeSelector:setupDragging()
@@ -289,9 +334,9 @@ function ModeSelector:Open()
     if self.isOpen then return end
     self.isOpen = true
     
-    -- Position at mouse: 20 pixels right, 17 pixels down
+    -- Position at mouse: 20 pixels right, 7 pixels down (17 - 10 = 7)
     local mousePos = UserInputService:GetMouseLocation()
-    self.MainFrame.Position = UDim2.new(0, mousePos.X + 17, 0, mousePos.Y - 20)
+    self.MainFrame.Position = UDim2.new(0, mousePos.X + 20, 0, mousePos.Y + 7)
     
     self.MainFrame.Visible = true
     self.BackgroundCatcher.Visible = true
@@ -319,39 +364,7 @@ function ModeSelector:GetCurrentMode()
 end
 
 function ModeSelector:SetMode(mode)
-    local modeIndex = table.find(self.modes, mode)
-    if not modeIndex then return false end
-    
-    local targetButton = nil
-    local targetPos = nil
-    for i, btn in ipairs(self.buttons) do
-        if btn.TextLabel.Text == mode then
-            targetButton = btn
-            targetPos = i
-            break
-        end
-    end
-    
-    if not targetButton or targetPos == 1 then return false end
-    
-    local topBtn = self.buttons[1]
-    local tween = function(obj, props)
-        TweenService:Create(obj, self.tweenInfo, props):Play()
-    end
-    
-    tween(targetButton, {Position = UDim2.new(0.05, 0, 0, self.positions[1])})
-    tween(topBtn, {Position = UDim2.new(0.05, 0, 0, self.positions[targetPos])})
-    self.buttons[1], self.buttons[targetPos] = self.buttons[targetPos], self.buttons[1]
-    
-    for i, btn in ipairs(self.buttons) do
-        tween(btn, {BackgroundColor3 = i == 1 and self.colors.on or self.colors.off})
-    end
-    
-    self.currentMode = mode
-    -- Save to global storage
-    globalModeStorage[self.currentButtonId] = mode
-    self.callbacks.onModeChanged(mode)
-    return true
+    return self:UpdateModeByName(mode, false)
 end
 
 function ModeSelector:GetSavedMode()
