@@ -1,4 +1,3 @@
--- ModeSelector Module
 local ModeSelector = {}
 ModeSelector.__index = ModeSelector
 
@@ -8,12 +7,10 @@ local CoreGui = game:GetService("CoreGui")
 local HttpService = game:GetService("HttpService")
 local UserInputService = game:GetService("UserInputService")
 
--- Module state
 local activeInstances = {}
 local fontDataLoaded = false
 local customFont = nil
 
--- Font setup (only loads once)
 local function setupFont()
     if fontDataLoaded then return customFont end
     
@@ -39,7 +36,6 @@ local function setupFont()
     return customFont
 end
 
--- Get proper parent for GUI
 local function getParent()
     if syn and syn.protect_gui then
         return CoreGui
@@ -50,13 +46,12 @@ local function getParent()
     end
 end
 
--- ModeSelector class
 function ModeSelector.new(options)
     local self = setmetatable({}, ModeSelector)
     
     self.options = options or {}
     self.modes = {"Always", "Toggle", "Hold"}
-    self.currentMode = self.modes[1] -- Default to Always
+    self.currentMode = self.modes[1]
     self.isOpen = false
     self.connections = {}
     self.objects = {}
@@ -66,7 +61,6 @@ function ModeSelector.new(options)
         onClose = self.options.onClose or function() end
     }
     
-    -- Create GUI elements
     self:createUI()
     
     return self
@@ -83,7 +77,6 @@ function ModeSelector:createUI()
     if syn and syn.protect_gui then syn.protect_gui(self.ScreenGui) end
     table.insert(self.objects, self.ScreenGui)
     
-    -- Main Frame
     self.MainFrame = Instance.new("Frame")
     self.MainFrame.Size = UDim2.new(0, 90, 0, 115)
     self.MainFrame.Position = UDim2.new(0.5, -45, 0.5, -57)
@@ -93,14 +86,12 @@ function ModeSelector:createUI()
     self.MainFrame.Parent = self.ScreenGui
     self.MainFrame.Visible = false
     
-    -- Top Bar
     self.TopBar = Instance.new("Frame")
     self.TopBar.Size = UDim2.new(1, 0, 0, 1)
     self.TopBar.BackgroundColor3 = Color3.fromRGB(45, 125, 220)
     self.TopBar.BorderSizePixel = 0
     self.TopBar.Parent = self.MainFrame
     
-    -- Title
     self.Title = Instance.new("TextLabel")
     self.Title.Text = self.options.title or "Mode"
     self.Title.Size = UDim2.new(1, 0, 0, 22)
@@ -112,7 +103,6 @@ function ModeSelector:createUI()
     self.Title.Font = Enum.Font.SourceSans
     self.Title.Parent = self.MainFrame
     
-    -- Content
     self.Content = Instance.new("Frame")
     self.Content.Size = UDim2.new(0.92, 0, 0, 80)
     self.Content.Position = UDim2.new(0.04, 0, 0, 25)
@@ -121,7 +111,6 @@ function ModeSelector:createUI()
     self.Content.BorderSizePixel = 1
     self.Content.Parent = self.MainFrame
     
-    -- Stroke
     local stroke = Instance.new("UIStroke")
     stroke.Color = Color3.fromRGB(55, 55, 55)
     stroke.Thickness = 1
@@ -129,7 +118,6 @@ function ModeSelector:createUI()
     stroke.LineJoinMode = Enum.LineJoinMode.Miter
     stroke.Parent = self.Content
     
-    -- Background click catcher (for click-outside)
     self.BackgroundCatcher = Instance.new("Frame")
     self.BackgroundCatcher.Size = UDim2.new(1, 0, 1, 0)
     self.BackgroundCatcher.Position = UDim2.new(0, 0, 0, 0)
