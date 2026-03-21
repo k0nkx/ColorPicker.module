@@ -188,7 +188,6 @@ function ModeSelector:createButtons()
             self.buttons[1], self.buttons[clickedIndex] = self.buttons[clickedIndex], self.buttons[1]
             updateColors()
             
-            -- Update current mode
             self.currentMode = self.buttons[1].TextLabel.Text
             self.callbacks.onModeChanged(self.currentMode)
         end)
@@ -240,12 +239,10 @@ function ModeSelector:setupDragging()
 end
 
 function ModeSelector:setupClickOutside()
-    -- Add click outside detection
     local function onInputBegan(input, gameProcessed)
         if gameProcessed then return end
         if not self.isOpen then return end
         
-        -- Check if click was inside the MainFrame
         local mousePos = UserInputService:GetMouseLocation()
         local absolutePos = self.MainFrame.AbsolutePosition
         local absoluteSize = self.MainFrame.AbsoluteSize
@@ -261,7 +258,6 @@ function ModeSelector:setupClickOutside()
     table.insert(self.connections, UserInputService.InputBegan:Connect(onInputBegan))
 end
 
--- Public methods
 function ModeSelector:Open()
     if self.isOpen then return end
     self.isOpen = true
@@ -291,11 +287,9 @@ function ModeSelector:GetCurrentMode()
 end
 
 function ModeSelector:SetMode(mode)
-    -- Find the mode in the list
     local modeIndex = table.find(self.modes, mode)
     if not modeIndex then return false end
     
-    -- Find which button currently has this mode
     local targetButton = nil
     local targetPos = nil
     for i, btn in ipairs(self.buttons) do
@@ -308,7 +302,6 @@ function ModeSelector:SetMode(mode)
     
     if not targetButton or targetPos == 1 then return false end
     
-    -- Swap with top button
     local topBtn = self.buttons[1]
     local tween = function(obj, props)
         TweenService:Create(obj, self.tweenInfo, props):Play()
@@ -318,7 +311,6 @@ function ModeSelector:SetMode(mode)
     tween(topBtn, {Position = UDim2.new(0.05, 0, 0, self.positions[targetPos])})
     self.buttons[1], self.buttons[targetPos] = self.buttons[targetPos], self.buttons[1]
     
-    -- Update colors
     for i, btn in ipairs(self.buttons) do
         tween(btn, {BackgroundColor3 = i == 1 and self.colors.on or self.colors.off})
     end
@@ -333,12 +325,10 @@ function ModeSelector:SetPosition(position)
 end
 
 function ModeSelector:Destroy()
-    -- Clean up connections
     for _, conn in ipairs(self.connections) do
         pcall(function() conn:Disconnect() end)
     end
     
-    -- Clean up objects
     for _, obj in ipairs(self.objects) do
         pcall(function() obj:Destroy() end)
     end
@@ -347,7 +337,6 @@ function ModeSelector:Destroy()
     self.objects = {}
     self.buttons = {}
     
-    -- Remove from active instances
     for i, instance in ipairs(activeInstances) do
         if instance == self then
             table.remove(activeInstances, i)
@@ -356,7 +345,6 @@ function ModeSelector:Destroy()
     end
 end
 
--- Cleanup all instances (useful for UI libraries)
 function ModeSelector.CleanupAll()
     for _, instance in ipairs(activeInstances) do
         pcall(function() instance:Destroy() end)
