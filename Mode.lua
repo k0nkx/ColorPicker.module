@@ -145,10 +145,6 @@ function ModeSelector:createUI()
 end
 
 function ModeSelector:createButtons()
-    local function tween(obj, props)
-        TweenService:Create(obj, self.tweenInfo, props):Play()
-    end
-    
     local function updateColors()
         for i, btn in ipairs(self.buttons) do
             btn.BackgroundColor3 = i == 1 and self.colors.on or self.colors.off
@@ -197,8 +193,26 @@ function ModeSelector:createButtons()
         table.insert(self.buttons, btn)
     end
     
-    -- Reorder buttons to put saved mode at top
-    self:UpdateModeByName(self.currentMode, true)
+    -- Reorder buttons to put saved mode at top (instant, no animation)
+    local targetIndex = nil
+    for i, btn in ipairs(self.buttons) do
+        if btn.TextLabel.Text == self.currentMode then
+            targetIndex = i
+            break
+        end
+    end
+    
+    if targetIndex and targetIndex ~= 1 then
+        local targetBtn = self.buttons[targetIndex]
+        local topBtn = self.buttons[1]
+        
+        -- Swap positions without animation
+        targetBtn.Position = UDim2.new(0.05, 0, 0, self.positions[1])
+        topBtn.Position = UDim2.new(0.05, 0, 0, self.positions[targetIndex])
+        self.buttons[1], self.buttons[targetIndex] = self.buttons[targetIndex], self.buttons[1]
+    end
+    
+    updateColors()
 end
 
 function ModeSelector:UpdateModeByIndex(clickedIndex)
@@ -334,9 +348,9 @@ function ModeSelector:Open()
     if self.isOpen then return end
     self.isOpen = true
     
-    -- Position at mouse: 20 pixels right, 17 pixels down
+    -- Position at mouse: 5 pixels right, 30 pixels up
     local mousePos = UserInputService:GetMouseLocation()
-    self.MainFrame.Position = UDim2.new(0, mousePos.X + 12, 0, mousePos.Y - 40)
+    self.MainFrame.Position = UDim2.new(0, mousePos.X + 5, 0, mousePos.Y - 30)
     
     self.MainFrame.Visible = true
     self.BackgroundCatcher.Visible = true
