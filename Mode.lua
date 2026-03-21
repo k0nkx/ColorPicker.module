@@ -54,6 +54,7 @@ function ModeSelector.new(options)
     self.modes = {"Always", "Toggle", "Hold"}
     self.currentButtonId = options.buttonId or 1
     
+    -- Load saved mode from global storage
     if globalModeStorage[self.currentButtonId] then
         self.currentMode = globalModeStorage[self.currentButtonId]
     else
@@ -87,6 +88,7 @@ function ModeSelector:createUI()
     
     self.MainFrame = Instance.new("Frame")
     self.MainFrame.Size = UDim2.new(0, 90, 0, 115)
+    -- Position will be set when opening
     self.MainFrame.BackgroundColor3 = Color3.fromRGB(33, 33, 33)
     self.MainFrame.BorderColor3 = Color3.fromRGB(0, 0, 0)
     self.MainFrame.BorderSizePixel = 1
@@ -154,6 +156,7 @@ function ModeSelector:createButtons()
         end
     end
     
+    -- Create buttons in order of modes array
     for i, modeName in ipairs(self.modes) do
         local btn = Instance.new("TextButton")
         btn.Text = ""
@@ -196,6 +199,7 @@ function ModeSelector:createButtons()
             updateColors()
             
             self.currentMode = self.buttons[1].TextLabel.Text
+            -- Save to global storage
             globalModeStorage[self.currentButtonId] = self.currentMode
             self.callbacks.onModeChanged(self.currentMode)
         end)
@@ -203,14 +207,17 @@ function ModeSelector:createButtons()
         table.insert(self.buttons, btn)
     end
     
+    -- Reorder buttons to put saved mode at top
     if self.currentMode ~= self.modes[1] then
         local targetIndex = table.find(self.modes, self.currentMode)
         if targetIndex then
             local targetBtn = self.buttons[targetIndex]
             local topBtn = self.buttons[1]
             
+            -- Swap positions in table
             self.buttons[1], self.buttons[targetIndex] = targetBtn, topBtn
             
+            -- Update visual positions
             targetBtn.Position = UDim2.new(0.05, 0, 0, self.positions[1])
             topBtn.Position = UDim2.new(0.05, 0, 0, self.positions[targetIndex])
         end
@@ -283,8 +290,9 @@ function ModeSelector:Open()
     if self.isOpen then return end
     self.isOpen = true
     
+    -- Position: 3 pixels down (80% less than 15 = 3), 15 pixels left (50% more right means less left offset: -15 instead of -30)
     local mousePos = UserInputService:GetMouseLocation()
-    self.MainFrame.Position = UDim2.new(0, mousePos.X - -30, 0, mousePos.Y + 45)
+    self.MainFrame.Position = UDim2.new(0, mousePos.X - 15, 0, mousePos.Y + 3)
     
     self.MainFrame.Visible = true
     self.BackgroundCatcher.Visible = true
@@ -341,6 +349,7 @@ function ModeSelector:SetMode(mode)
     end
     
     self.currentMode = mode
+    -- Save to global storage
     globalModeStorage[self.currentButtonId] = mode
     self.callbacks.onModeChanged(mode)
     return true
