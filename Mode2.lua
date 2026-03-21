@@ -55,12 +55,13 @@ function ModeSelector.new(options)
     self.modes = {"Always", "Toggle", "Hold"}
     self.currentButtonId = options.buttonId or 1
     
-    -- Load saved mode from global storage
-    if globalModeStorage[self.currentButtonId] then
-        self.currentMode = globalModeStorage[self.currentButtonId]
-    else
-        self.currentMode = self.modes[1]
+    -- Initialize storage for this button ID if it doesn't exist
+    if globalModeStorage[self.currentButtonId] == nil then
+        globalModeStorage[self.currentButtonId] = self.modes[1]
     end
+    
+    -- Load saved mode from global storage for THIS button ID
+    self.currentMode = globalModeStorage[self.currentButtonId]
     
     self.isOpen = false
     self.connections = {}
@@ -193,21 +194,16 @@ end
 function ModeSelector:UpdateMode(modeName)
     if modeName == self.currentMode then return end
     
-    -- Find the button that was clicked
-    for i, btn in ipairs(self.buttons) do
-        if btn.TextLabel.Text == modeName then
-            -- Update colors: highlight the selected button, unhighlight others
-            for j, otherBtn in ipairs(self.buttons) do
-                local tween = TweenService:Create(otherBtn, self.tweenInfo, {
-                    BackgroundColor3 = (otherBtn.TextLabel.Text == modeName) and self.colors.on or self.colors.off
-                })
-                tween:Play()
-            end
-            break
-        end
+    -- Update colors: highlight the selected button, unhighlight others
+    for _, btn in ipairs(self.buttons) do
+        local tween = TweenService:Create(btn, self.tweenInfo, {
+            BackgroundColor3 = (btn.TextLabel.Text == modeName) and self.colors.on or self.colors.off
+        })
+        tween:Play()
     end
     
     self.currentMode = modeName
+    -- Save to global storage with the current button's ID
     globalModeStorage[self.currentButtonId] = self.currentMode
     self.callbacks.onModeChanged(self.currentMode)
 end
@@ -218,12 +214,12 @@ function ModeSelector:UpdateModeByName(mode, instant)
     
     if instant then
         -- Instant update without animation
-        for i, btn in ipairs(self.buttons) do
+        for _, btn in ipairs(self.buttons) do
             btn.BackgroundColor3 = (btn.TextLabel.Text == mode) and self.colors.on or self.colors.off
         end
     else
         -- Animated update
-        for i, btn in ipairs(self.buttons) do
+        for _, btn in ipairs(self.buttons) do
             local tween = TweenService:Create(btn, self.tweenInfo, {
                 BackgroundColor3 = (btn.TextLabel.Text == mode) and self.colors.on or self.colors.off
             })
@@ -232,6 +228,7 @@ function ModeSelector:UpdateModeByName(mode, instant)
     end
     
     self.currentMode = mode
+    -- Save to global storage with the current button's ID
     globalModeStorage[self.currentButtonId] = mode
     self.callbacks.onModeChanged(mode)
     return true
@@ -351,6 +348,14 @@ function ModeSelector:GetSavedMode()
     return globalModeStorage[self.currentButtonId] or self.currentMode
 end
 
+function ModeSelector:RefreshFromStorage()
+    -- Reload the saved mode from storage for this button ID
+    local savedMode = globalModeStorage[self.currentButtonId]
+    if savedMode and savedMode ~= self.currentMode then
+        self:UpdateModeByName(savedMode, true)
+    end
+end
+
 function ModeSelector:Destroy()
     -- If this instance was open, clear the reference
     if openInstance == self then
@@ -388,6 +393,7 @@ function ModeSelector.CleanupAll()
         pcall(function() instance:Destroy() end)
     end
     activeInstances = {}
+    globalModeStorage = {} -- Clear all stored modes
 end
 
 return ModeSelector
