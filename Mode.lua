@@ -150,13 +150,11 @@ function ModeSelector:createButtons()
     
     local function updateColors()
         for i, btn in ipairs(self.buttons) do
-            tween(btn, {BackgroundColor3 = i == 1 and self.colors.on or self.colors.off})
+            btn.BackgroundColor3 = i == 1 and self.colors.on or self.colors.off
         end
     end
     
-    -- Find which mode should be at top based on saved mode
-    local topModeIndex = table.find(self.modes, self.currentMode) or 1
-    
+    -- Create buttons in order of modes array
     for i, modeName in ipairs(self.modes) do
         local btn = Instance.new("TextButton")
         btn.Text = ""
@@ -207,14 +205,19 @@ function ModeSelector:createButtons()
     end
     
     -- Reorder buttons to put saved mode at top
-    if topModeIndex ~= 1 then
-        local targetBtn = self.buttons[topModeIndex]
-        local topBtn = self.buttons[1]
-        self.buttons[1], self.buttons[topModeIndex] = targetBtn, topBtn
-        
-        -- Update positions without animation for initial setup
-        targetBtn.Position = UDim2.new(0.05, 0, 0, self.positions[1])
-        topBtn.Position = UDim2.new(0.05, 0, 0, self.positions[topModeIndex])
+    if self.currentMode ~= self.modes[1] then
+        local targetIndex = table.find(self.modes, self.currentMode)
+        if targetIndex then
+            local targetBtn = self.buttons[targetIndex]
+            local topBtn = self.buttons[1]
+            
+            -- Swap positions in table
+            self.buttons[1], self.buttons[targetIndex] = targetBtn, topBtn
+            
+            -- Update visual positions
+            targetBtn.Position = UDim2.new(0.05, 0, 0, self.positions[1])
+            topBtn.Position = UDim2.new(0.05, 0, 0, self.positions[targetIndex])
+        end
     end
     
     updateColors()
@@ -286,7 +289,7 @@ function ModeSelector:Open()
     
     -- Position 15 pixels down and 30 pixels left of mouse position
     local mousePos = UserInputService:GetMouseLocation()
-    self.MainFrame.Position = UDim2.new(0, mousePos.X - 55, 0, mousePos.Y + 20)
+    self.MainFrame.Position = UDim2.new(0, mousePos.X - 33, 0, mousePos.Y + -40)
     
     self.MainFrame.Visible = true
     self.BackgroundCatcher.Visible = true
