@@ -88,7 +88,7 @@ function ModeSelector:createUI()
     
     self.MainFrame = Instance.new("Frame")
     self.MainFrame.Size = UDim2.new(0, 90, 0, 115)
-    -- Position will be set when opening
+    self.MainFrame.Position = UDim2.new(0, 0, 0, 0)
     self.MainFrame.BackgroundColor3 = Color3.fromRGB(33, 33, 33)
     self.MainFrame.BorderColor3 = Color3.fromRGB(0, 0, 0)
     self.MainFrame.BorderSizePixel = 1
@@ -290,9 +290,8 @@ function ModeSelector:Open()
     if self.isOpen then return end
     self.isOpen = true
     
-    -- Position offset from mouse: 25 pixels right, 11 pixels up
-    local mousePos = UserInputService:GetMouseLocation()
-    self.MainFrame.Position = UDim2.new(0, mousePos.X + 0, 0, mousePos.Y - 0)
+    -- Position at 0,0
+    self.MainFrame.Position = UDim2.new(0, 0, 0, 0)
     
     self.MainFrame.Visible = true
     self.BackgroundCatcher.Visible = true
