@@ -290,9 +290,9 @@ function ModeSelector:Open()
     if self.isOpen then return end
     self.isOpen = true
     
-    -- Position: 3 pixels down (80% less than 15 = 3), 15 pixels left (50% more right means less left offset: -15 instead of -30)
+    -- Position: more up (negative Y offset) and more right (positive X offset)
     local mousePos = UserInputService:GetMouseLocation()
-    self.MainFrame.Position = UDim2.new(0, mousePos.X + 15, 0, mousePos.Y - 15)
+    self.MainFrame.Position = UDim2.new(0, mousePos.X + 30, 0, mousePos.Y - 6)
     
     self.MainFrame.Visible = true
     self.BackgroundCatcher.Visible = true
