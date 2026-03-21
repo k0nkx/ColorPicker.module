@@ -289,7 +289,7 @@ function ModeSelector:Open()
     
     -- Position 15 pixels down and 30 pixels left of mouse position
     local mousePos = UserInputService:GetMouseLocation()
-    self.MainFrame.Position = UDim2.new(0, mousePos.X - 33, 0, mousePos.Y + -40)
+    self.MainFrame.Position = UDim2.new(0, mousePos.X - 20, 0, mousePos.Y + 45)
     
     self.MainFrame.Visible = true
     self.BackgroundCatcher.Visible = true
